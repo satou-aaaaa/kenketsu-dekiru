@@ -47,6 +47,13 @@ const ruleFails = (p, t) => {
 };
 const LEVEL_OF = { nenrei: 2, taiju: 2, kankaku: 1, nenkan: 1 };
 // しくみの問題の答え
+// 前の献血から数えて、1年の量・回数をこなせるいちばん短い期間が52週に収まるか（data.js とは別に数える）
+function feasible(p) {
+  const pt = p.prev.t;
+  if (pt === "z2" || pt === "z4") { const ml = pt === "z2" ? 200 : 400, n = 1 + Math.ceil(Math.max(0, p.vol - ml) / 400); return p.prev.wk + 4 * (n - 1) <= 51; }
+  const n = p.pl + p.pc; return p.prev.wk + 2 * (n - 1) - Math.max(0, p.pc - 1) <= 51;
+}
+check("ありえない献血歴を見分けられる（10週間前に血漿・1年に血漿24回は×、4週間前・24回は○）", !feasible({ prev: { t: "pl", wk: 10 }, pl: 24, pc: 0 }) && feasible({ prev: { t: "pl", wk: 4 }, pl: 24, pc: 0 }));
 const FACT = { start200: "16歳", m400: "12週間", pc2: "2回分", "52w": "過去52週", f400: "16週間", over65: "60〜64歳に献血したことがある", kisan: "献血をした日", seibun: "2週間" };
 const LAW = "https://laws.e-gov.go.jp/law/331M50000100022", JRC = "https://www.jrc.or.jp/donation/about/terms/";
 {
@@ -71,6 +78,8 @@ const LAW = "https://laws.e-gov.go.jp/law/331M50000100022", JRC = "https://www.j
         // 前の献血をしたその日に、1年の量・回数の基準に合っていたか（合っていない献血歴は作らない。kenketsu-dekiru #1 の CodeRabbit）
         if (p.prev && p.prev.wk < 52) { const pt = p.prev.t, M = p.sex === "M", whole = G.TY[pt].whole, before = { ...p, prev: null, vol: whole ? p.vol - G.TY[pt].ml : p.vol, pl: p.pl - (pt === "pl" ? 1 : 0), pc: p.pc - (pt === "pc" ? 1 : 0) };
           if (ruleFails(before, pt).includes("nenkan")) why.push("前の献血の日に、1年の量・回数の基準を超えていた（ありえない献血歴）"); }
+        // 前の献血の時期と1年の量・回数が両立するか（いちばん古い回も過去52週に入るか。全血のあいだは4週間・成分は2週間・血小板どうしは1週間より短くできない）
+        if (p.prev && p.prev.wk < 52 && !feasible(p)) why.push("前の献血の時期と1年の量・回数が両立しない（ありえない献血歴）");
         if (!P.q.includes(`（${p.sex === "M" ? "男性" : "女性"}・${p.age}歳・体重${p.w}kg）`) || !/をしたい。どうなる？$/.test(P.q)) why.push("問いの言い方がちがう");
         if ([...P.why].length > 100 || [...P.key].length > 60) why.push("説明・ヒントが長い");
       } else {

@@ -93,6 +93,9 @@
     let pl = c - 2 * pc;
     if (pcomp === "pl" && pl < 1) { if (pc > 0) { pc -= 1; pl += 2; } else pl = 1; }
     if (pcomp === "pc" && pc < 1) { pc = 1; pl = Math.max(0, pl - 2); }
+    // 前の成分献血が、1年の回数と両立する時期にする。成分のあいだは2週間（血小板どうしは1週間）より短くできないので、
+    // いちばん古い回が52週より前にならないよう前の献血を近づける（kenketsu-dekiru #1 の CodeRabbit：10週間前で血漿24回はありえない）
+    if (pcomp) { const span = 2 * (pl + pc - 1) - Math.max(0, pc - 1); if (prev.wk + span > 51) prev.wk = Math.max(o.prev[1], 51 - span); }
     return { sex, age, w, prev, vol, pl, pc };
   }
   function story(p, t, ni) {
