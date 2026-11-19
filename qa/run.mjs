@@ -17,7 +17,7 @@ const results = [];
 const check = (name, ok, detail = "") => results.push({ name, ok: !!ok, detail: String(detail).slice(0, 400) });
 const G = createRequire(import.meta.url)(path.join(root, "data.js"));
 
-const PINS = "m400:2:1.3,agepl:7:M:16:66:-:0:0.2,f400:2:4.1.3,52w:0:3.4.0,kisan:0:4.0.1,w400f:0:F:22:48:-:400:1.0,year400f:6:F:27:51:z418:600:4.1,seibun:0:0.2.4;agepl:5:M:16:73:-:200:2.0,age200:2:M:15:56:-:400:3.1,ok400m17:4:M:17:65:-:400:2.1,ok200f:5:F:57:41:-:400:0.2,gappcpl:0:M:32:66:pl1:0:5.0,kisan:0:0.3.2,year400m:0:M:26:69:z420:1000:1.0,yearpl:0:M:20:80:pl3:0:19.3;age200:5:F:14:55:-:400:3.0,agepl:3:F:16:62:-:200:1.0,gappl:5:M:42:72:pl1:200:5.0,ok400m13:3:M:45:71:z418:400:5.0,seibun:0:2.1.3,year400f:1:F:48:57:z426:600:6.0,year400m:3:M:32:69:z422:1000:3.0,ok200m1000:0:M:51:63:z426:1000:0.0"; // 過去の日の問題の印（変わったら過去の日の問題が変わった印。種類・言い方は足すだけでも変わる）
+const PINS = "m400:2:1.3:1jg5xyn,agepl:7:M:16:66:-:0:0.2:134atwy,f400:2:4.1.3:7fp63o,52w:0:3.4.0:1887lo4,kisan:0:4.0.1:xgmf5a,w400f:0:F:22:48:-:400:1.0:6j1z10,year400f:6:F:27:51:z418:600:4.1:11fjsb8,seibun:0:0.2.4:129ioeo;agepl:5:M:16:73:-:200:2.0:1tymty4,age200:2:M:15:56:-:400:3.1:3yc0jd,ok400m17:4:M:17:65:-:400:2.1:1wqr6sm,ok200f:5:F:57:41:-:400:0.2:6g64up,gappcpl:0:M:32:66:pl1:0:5.0:17vbhc,kisan:0:0.3.2:1rvcvta,year400m:0:M:26:69:z420:1000:1.0:1q4ree1,yearpl:0:M:20:80:pl3:0:18.3:8t959v;age200:5:F:14:55:-:400:3.0:uin90y,agepl:3:F:16:62:-:200:1.0:cbk9hr,gappl:5:M:42:72:pl1:200:5.0:12o6mhc,ok400m13:3:M:45:71:z418:400:5.0:165460w,seibun:0:2.1.3:1s2hik7,year400f:1:F:48:57:z426:600:6.0:q72wxx,year400m:3:M:32:69:z422:1000:3.0:1tbj9e2,ok200m1000:0:M:51:63:z426:1000:0.0:7lc2h4"; // 過去の日の問題の印（変わったら過去の日の問題が変わった印。種類・言い方は足すだけでも変わる）
 // ---- 1. 問題の作り方（ブラウザを使わない）----
 // 献血の基準（ゲームとは別に書いた表。data.js の答えがこれと合うかを見る）
 // 出典：安全な血液製剤の安定供給の確保等に関する法律施行規則 別表第二（e-Gov 法令API 331M50000100022。2026-11-19 に読んだ。原文の引用は共有フォルダ games/kenketsu-research.md）
@@ -68,6 +68,9 @@ const LAW = "https://laws.e-gov.go.jp/law/331M50000100022", JRC = "https://www.j
         if (p.prev && p.prev.wk < 52 && G.TY[p.prev.t].whole && p.vol < G.TY[p.prev.t].ml) why.push("1年の量に前の献血が入っていない");
         if (p.prev && p.prev.t === "pl" && p.pl < 1 || p.prev && p.prev.t === "pc" && p.pc < 1) why.push("1年の回数に前の献血が入っていない");
         if (p.pc >= 4 && k.t === "pc") why.push("血小板の4週間に4回の基準に当たるかもしれない");
+        // 前の献血をしたその日に、1年の量・回数の基準に合っていたか（合っていない献血歴は作らない。kenketsu-dekiru #1 の CodeRabbit）
+        if (p.prev && p.prev.wk < 52) { const pt = p.prev.t, M = p.sex === "M", whole = G.TY[pt].whole, before = { ...p, prev: null, vol: whole ? p.vol - G.TY[pt].ml : p.vol, pl: p.pl - (pt === "pl" ? 1 : 0), pc: p.pc - (pt === "pc" ? 1 : 0) };
+          if (ruleFails(before, pt).includes("nenkan")) why.push("前の献血の日に、1年の量・回数の基準を超えていた（ありえない献血歴）"); }
         if (!P.q.includes(`（${p.sex === "M" ? "男性" : "女性"}・${p.age}歳・体重${p.w}kg）`) || !/をしたい。どうなる？$/.test(P.q)) why.push("問いの言い方がちがう");
         if ([...P.why].length > 100 || [...P.key].length > 60) why.push("説明・ヒントが長い");
       } else {
@@ -115,7 +118,7 @@ const LAW = "https://laws.e-gov.go.jp/law/331M50000100022", JRC = "https://www.j
   check(`2か月のうちに${G.KINDS.length}種類が全部出る・前の日と同じ組の日が少ない`, cover.size === G.KINDS.length && sameAsPrev < 20, `${cover.size}種類・前の日と同じ ${sameAsPrev}日`);
   // 過去の日の問題が変わらない（data.js を直したときの見張り。値は 2026-11-19 に作ったもの）
   // 1問目だけでなく、いくつかの日の5問と上級3問の全部（種類と言い方・選び肢の印）を見る（種類や言い方を足すと、全部の日の問題が変わるため。shigaisen-yomi #1 の CodeRabbit）
-  const snap = ["2026-11-19", "2026-11-20", "2027-01-01"].map((d) => [...G.dailyTags(d), ...G.hardTags(d)].map((t) => { const P = G.make(t); return `${P.kind}:${P.v}`; }).join(",")).join(";");
+  const snap = ["2026-11-19", "2026-11-20", "2027-01-01"].map((d) => [...G.dailyTags(d), ...G.hardTags(d)].map((t) => { const P = G.make(t); return `${P.kind}:${P.v}:${G.seedOf(P.q + "|" + P.opts.join("/") + "|" + P.ans).toString(36)}`; }).join(",")).join(";"); // 問いの文・選び肢・答えも見る（同じ位置の言い方を替えても気づく。kenketsu-dekiru #1 の CodeRabbit）
   check("過去の日（2026-11-19・11-20・2027-01-01）の5問と上級3問が作ったときのまま（種類・言い方を足す・並べ替える・消すと変わる）", snap === PINS, snap);
 }
 
@@ -304,7 +307,7 @@ try {
       check("知らない mode の途中経過は捨て、ホームが出る", !("d" in r) && !("h" in r) && await z.locator("#go-d").count() === 1);
       // 別のタブで終えたまま記録していない上級の回は、次の回を始める前に記録する
       await z.evaluate(() => { const s = __nm.load(), y = "2026-11-06", G = __nm.G; s.runs.h = { mode: "h", date: y, list: G.hardTags(y), res: [{ m: 0 }, { m: 0 }, { m: 0 }], cur: null, id: "old" }; localStorage.setItem("kks-v1", JSON.stringify(s)); });
-      await z.reload(); await z.waitForTimeout(200); await z.evaluate(() => __nm.start("h"));
+      await z.evaluate(() => __nm.start("h")); // 読み直さずに（ホームの記帳ではなく、次の回を始める操作で記帳するかを見る。kenketsu-dekiru #1 の CodeRabbit）
       check("終えたまま残った前の日の回は、上書きする前に記録する", !!(await mem(z)).hdays["2026-11-06"]);
       // とことんで足せる問題が無くても、くり返し呼んで固まらない
       const ok = await z.evaluate(() => { const s = __nm.load(); s.runs.e = { mode: "e", date: __nm.todayKey(), list: ["gap400m|1", "ok200|1"], res: [{ m: 0 }, { m: 0 }], cur: null, id: "e1" }; localStorage.setItem("kks-v1", JSON.stringify(s)); const ml = __nm.setMore(() => []); try { __nm.play("e"); return true; } catch (e) { return String(e); } finally { __nm.setMore(ml); } });

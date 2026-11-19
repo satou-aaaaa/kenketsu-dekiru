@@ -31,7 +31,7 @@
   const GRP_WHY = {
     nenrei: "年齢の基準は種類でちがいます。200mLは16歳から、400mLは男性17歳・女性18歳から、成分献血は18歳から。女性の血小板成分献血は54歳までです。",
     taiju: "400mLは男女とも50kg以上です。200mLと成分献血は、男性45kg以上・女性40kg以上です。",
-    kankaku: "200mLのあとは4週間、成分献血のあとは2週間あけます。400mLのあとは、全血なら男性12週・女性16週、成分献血なら8週です。",
+    kankaku: "200mLのあとは4週間、成分献血のあとは2週間あけます（血小板のあとの血小板だけは1週間）。400mLのあとは、全血なら男性12週・女性16週、成分献血なら8週です。",
     nenkan: "1年は52週で数えます。全血は今日の分を足して男性1,200mL・女性800mLまで。成分献血は血小板を2回分に数え、今日の分を足して24回までです。",
   };
   const ANS_OF = { nenrei: NG, taiju: NG, kankaku: MATSU, nenkan: MATSU };
@@ -194,7 +194,7 @@
     want("year400m", 2, "z4", "nenkan", { sex: "M", age: A, prev: ["z4", 13, 30], vol: [1000, 1200] }),
     want("ok200m1000", 2, "z2", null, { sex: "M", age: A, prev: ["z4", 13, 30], vol: [1000] }),
     want("year400f", 2, "z4", "nenkan", { sex: "F", age: A, prev: ["z4", 17, 30], vol: [600, 800] }),
-    want("yearpl", 2, "pl", "nenkan", { sex: "*", age: A, prev: ["pl", 3, 10], cc: [24, 26] }),
+    want("yearpl", 2, "pl", "nenkan", { sex: "*", age: A, prev: ["pl", 3, 10], cc: [24, 24] }),
     want("yearpc", 2, "pc", "nenkan", { sex: "*", age: [20, 50], prev: ["pl", 3, 10], cc: [23, 23] }),
     want("okpl23", 2, "pl", null, { sex: "*", age: A, prev: ["pl", 3, 10], cc: [22, 23] }),
     want("w400f", 2, "z4", "taiju", { sex: "F", age: A, w: [45, 49], prev: null }),
